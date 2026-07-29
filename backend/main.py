@@ -2,8 +2,8 @@ from fastapi import FastAPI
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from database import get_db
-from models import Category
-from schemas import CategoryCreate, CategoryResponse
+from models import Category, Article
+from schemas import CategoryCreate, CategoryResponse, ArticleCreate, ArticleResponse
 
 app = FastAPI()
 

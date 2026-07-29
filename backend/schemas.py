@@ -18,3 +18,26 @@ class CategoryResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ArticleCreate(BaseModel):
+    title: str
+    slug: str
+    content: str
+    category_id: Optional[int] = None
+    author_id: Optional[int] = None
+    status: Optional[str] = "draft"
+
+
+class ArticleResponse(BaseModel):
+    id: int
+    title: str
+    slug: str
+    content: str
+    category_id: Optional[int] = None
+    author_id: Optional[int] = None
+    status: str
+    views: int
+
+    class Config:
+        from_attributes = True
