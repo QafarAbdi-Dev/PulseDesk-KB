@@ -23,3 +23,18 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_category)
     return new_category
+
+@app.post("/articles", response_model=ArticleResponse)
+def create_article(article: ArticleCreate, db: Session = Depends(get_db)):
+    new_article = Article(
+        title=article.title,
+        slug=article.slug,
+        content=article.content,
+        category_id=article.category_id,
+        author_id=article.author_id,
+        status=article.status
+    )
+    db.add(new_article)
+    db.commit()
+    db.refresh(new_article)
+    return new_article
