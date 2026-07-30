@@ -24,6 +24,10 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     db.refresh(new_category)
     return new_category
 
+@app.get("/articles", response_model=list[ArticleResponse])
+def get_articles(db: Session = Depends(get_db)):
+    return db.query(Article).all()
+
 @app.post("/articles", response_model=ArticleResponse)
 def create_article(article: ArticleCreate, db: Session = Depends(get_db)):
     new_article = Article(
@@ -38,3 +42,7 @@ def create_article(article: ArticleCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_article)
     return new_article
+
+@app.get("/categories", response_model=list[CategoryResponse])
+def get_categories(db: Session = Depends(get_db)):
+    return db.query(Category).all()
