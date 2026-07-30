@@ -41,3 +41,21 @@ class ArticleResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UserCreate(BaseModel):
+    name: str
+    email: str
+    password: str
+    department: Optional[str] = None
+
+
+class UserResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    role: str
+    department: Optional[str] = None
+
+    class Config:
+        from_attributes = True
