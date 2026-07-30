@@ -2,8 +2,9 @@ from fastapi import FastAPI
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from database import get_db
-from models import Category, Article
-from schemas import CategoryCreate, CategoryResponse, ArticleCreate, ArticleResponse
+from security import hash_password
+from models import Category, Article, User
+from schemas import CategoryCreate, CategoryResponse, ArticleCreate, ArticleResponse, UserCreate, UserResponse
 
 app = FastAPI()
 
@@ -46,3 +47,17 @@ def create_article(article: ArticleCreate, db: Session = Depends(get_db)):
 @app.get("/categories", response_model=list[CategoryResponse])
 def get_categories(db: Session = Depends(get_db)):
     return db.query(Category).all()
+
+@app.post("/users", response_model=UserResponse)
+def create_user(user: UserCreate, db: Session = Depends(get_db)):
+    hashed_pw = hash_password(user.password)
+    new_user = User(
+        name=user.name,
+        email=user.email,
+        password_hash=hashed_pw,
+        department=user.department
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
