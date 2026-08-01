@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 function App() {
   const [categories, setCategories] = useState([])
   const [articles, setArticles] = useState([])
+  const [selectedArticle, setSelectedArticle] = useState(null)
 
   useEffect(() => {
     fetch('http://127.0.0.1:8000/categories')
@@ -13,6 +14,27 @@ function App() {
       .then((res) => res.json())
       .then((data) => setArticles(data))
   }, [])
+
+  if (selectedArticle) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <header className="bg-blue-600 text-white py-6 px-6">
+          <button
+            onClick={() => setSelectedArticle(null)}
+            className="text-blue-100 hover:text-white mb-4"
+          >
+            ← Back to Knowledge Base
+          </button>
+          <h1 className="text-2xl font-bold">{selectedArticle.title}</h1>
+        </header>
+        <main className="max-w-3xl mx-auto px-6 py-10">
+          <div className="bg-white rounded-lg shadow p-6">
+            <p className="text-slate-700 leading-relaxed">{selectedArticle.content}</p>
+          </div>
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -42,7 +64,11 @@ function App() {
           <h2 className="text-xl font-semibold mb-4 text-slate-800">Articles</h2>
           <div className="space-y-4">
             {articles.map((article) => (
-              <div key={article.id} className="bg-white rounded-lg shadow p-4">
+              <div
+                key={article.id}
+                onClick={() => setSelectedArticle(article)}
+                className="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md transition"
+              >
                 <h3 className="font-semibold text-slate-800">{article.title}</h3>
                 <p className="text-slate-500 text-sm mt-1">{article.status}</p>
               </div>
