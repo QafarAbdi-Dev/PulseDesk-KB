@@ -4,6 +4,13 @@ function App() {
   const [categories, setCategories] = useState([])
   const [articles, setArticles] = useState([])
   const [selectedArticle, setSelectedArticle] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [view, setView] = useState('home')
+  const [currentUser, setCurrentUser] = useState(null)
+
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' })
+  const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '', department: '' })
+  const [authError, setAuthError] = useState('')
 
   useEffect(() => {
     fetch('http://127.0.0.1:8000/categories')
@@ -15,9 +22,142 @@ function App() {
       .then((data) => setArticles(data))
   }, [])
 
+  const filteredArticles = articles.filter((a) =>
+    a.title.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const handleLogin = (e) => {
+    e.preventDefault()
+    setAuthError('')
+    fetch('http://127.0.0.1:8000/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(loginForm),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Invalid email or password')
+        return res.json()
+      })
+      .then((data) => {
+        setCurrentUser(data)
+        setView('home')
+      })
+      .catch((err) => setAuthError(err.message))
+  }
+
+  const handleRegister = (e) => {
+    e.preventDefault()
+    setAuthError('')
+    fetch('http://127.0.0.1:8000/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(registerForm),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Could not create account')
+        return res.json()
+      })
+      .then((data) => {
+        setCurrentUser(data)
+        setView('home')
+      })
+      .catch((err) => setAuthError(err.message))
+  }
+
+  const NavBar = () => (
+    <div className="flex justify-end gap-4 px-6 py-3 bg-blue-700 text-sm text-blue-100">
+      {currentUser ? (
+        <>
+          <span>Hi, {currentUser.name} ({currentUser.role})</span>
+          <button onClick={() => setCurrentUser(null)} className="hover:text-white">Log out</button>
+        </>
+      ) : (
+        <>
+          <button onClick={() => setView('login')} className="hover:text-white">Login</button>
+          <button onClick={() => setView('register')} className="hover:text-white">Register</button>
+        </>
+      )}
+    </div>
+  )
+
+  if (view === 'login') {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <NavBar />
+        <div className="max-w-sm mx-auto mt-16 bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold mb-4 text-slate-800">Log In</h2>
+          {authError && <p className="text-red-600 text-sm mb-3">{authError}</p>}
+          <form onSubmit={handleLogin} className="space-y-3">
+            <input
+              type="email"
+              placeholder="Email"
+              className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800"
+              value={loginForm.email}
+              onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800"
+              value={loginForm.password}
+              onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+            />
+            <button type="submit" className="w-full bg-blue-600 text-white rounded py-2">Log In</button>
+          </form>
+          <button onClick={() => setView('home')} className="mt-4 text-sm text-blue-600">← Back</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (view === 'register') {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <NavBar />
+        <div className="max-w-sm mx-auto mt-16 bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold mb-4 text-slate-800">Register</h2>
+          {authError && <p className="text-red-600 text-sm mb-3">{authError}</p>}
+          <form onSubmit={handleRegister} className="space-y-3">
+            <input
+              type="text"
+              placeholder="Full Name"
+              className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800"
+              value={registerForm.name}
+              onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800"
+              value={registerForm.email}
+              onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800"
+              value={registerForm.password}
+              onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+            />
+            <input
+              type="text"
+              placeholder="Department"
+              className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800"
+              value={registerForm.department}
+              onChange={(e) => setRegisterForm({ ...registerForm, department: e.target.value })}
+            />
+            <button type="submit" className="w-full bg-blue-600 text-white rounded py-2">Register</button>
+          </form>
+          <button onClick={() => setView('home')} className="mt-4 text-sm text-blue-600">← Back</button>
+        </div>
+      </div>
+    )
+  }
+
   if (selectedArticle) {
     return (
       <div className="min-h-screen bg-slate-50">
+        <NavBar />
         <header className="bg-blue-600 text-white py-6 px-6">
           <button
             onClick={() => setSelectedArticle(null)}
@@ -38,13 +178,16 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <NavBar />
       <header className="bg-blue-600 text-white py-10 px-6 text-center">
         <h1 className="text-3xl font-bold mb-2">PulseDesk-KB</h1>
-        <p className="text-blue-100">Healthcare Knowledge Base & Support Assistant</p>
+        <p className="text-blue-100 mb-6">Healthcare Knowledge Base & Support Assistant</p>
         <input
           type="text"
           placeholder="Search articles..."
-          className="mt-6 w-full max-w-md mx-auto block rounded-lg px-4 py-2 text-slate-800"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full max-w-md mx-auto block rounded-lg px-4 py-2 text-slate-800 border border-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
       </header>
 
@@ -63,7 +206,10 @@ function App() {
         <section>
           <h2 className="text-xl font-semibold mb-4 text-slate-800">Articles</h2>
           <div className="space-y-4">
-            {articles.map((article) => (
+            {filteredArticles.length === 0 && (
+              <p className="text-slate-500">No articles match your search.</p>
+            )}
+            {filteredArticles.map((article) => (
               <div
                 key={article.id}
                 onClick={() => setSelectedArticle(article)}
