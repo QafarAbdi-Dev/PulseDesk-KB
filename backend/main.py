@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi import Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import get_db
 from security import hash_password, verify_password
@@ -7,6 +8,14 @@ from models import Category, Article, User
 from schemas import CategoryCreate, CategoryResponse, ArticleCreate, ArticleResponse, UserCreate, UserResponse, LoginRequest
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
