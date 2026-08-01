@@ -1,16 +1,18 @@
 from fastapi import FastAPI
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
-from security import hash_password
+from security import hash_password, verify_password
 from models import Category, Article, User
-from schemas import CategoryCreate, CategoryResponse, ArticleCreate, ArticleResponse, UserCreate, UserResponse
+from schemas import CategoryCreate, CategoryResponse, ArticleCreate, ArticleResponse, UserCreate, UserResponse, LoginRequest
 
 app = FastAPI()
+
 
 @app.get("/")
 def read_root():
     return {"message": "PulseDesk-KB API is running"}
+
 
 @app.post("/categories", response_model=CategoryResponse)
 def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
@@ -25,9 +27,11 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     db.refresh(new_category)
     return new_category
 
-@app.get("/articles", response_model=list[ArticleResponse])
-def get_articles(db: Session = Depends(get_db)):
-    return db.query(Article).all()
+
+@app.get("/categories", response_model=list[CategoryResponse])
+def get_categories(db: Session = Depends(get_db)):
+    return db.query(Category).all()
+
 
 @app.post("/articles", response_model=ArticleResponse)
 def create_article(article: ArticleCreate, db: Session = Depends(get_db)):
@@ -44,9 +48,11 @@ def create_article(article: ArticleCreate, db: Session = Depends(get_db)):
     db.refresh(new_article)
     return new_article
 
-@app.get("/categories", response_model=list[CategoryResponse])
-def get_categories(db: Session = Depends(get_db)):
-    return db.query(Category).all()
+
+@app.get("/articles", response_model=list[ArticleResponse])
+def get_articles(db: Session = Depends(get_db)):
+    return db.query(Article).all()
+
 
 @app.post("/users", response_model=UserResponse)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -61,3 +67,13 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     return new_user
+
+
+@app.post("/login", response_model=UserResponse)
+def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == credentials.email).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    if not verify_password(credentials.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    return user

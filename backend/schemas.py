@@ -59,3 +59,8 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
