@@ -5,16 +5,16 @@ function ChatWidget({ chatOpen, setChatOpen, chatMessages, chatInput, setChatInp
     <div className="fixed bottom-6 right-6 z-50">
       {chatOpen && (
         <div className="mb-3 w-80 h-96 bg-white rounded-lg shadow-xl flex flex-col overflow-hidden border border-slate-200">
-          <div className="bg-blue-600 text-white px-4 py-3 flex justify-between items-center">
-            <span className="font-semibold">PulseDesk Assistant</span>
-            <button onClick={() => setChatOpen(false)} className="text-blue-100 hover:text-white">✕</button>
+          <div className="bg-slate-800 text-white px-4 py-3 flex justify-between items-center">
+            <span className="font-semibold text-sm">PulseDesk Assistant</span>
+            <button onClick={() => setChatOpen(false)} className="text-slate-300 hover:text-white">✕</button>
           </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50">
             {chatMessages.map((msg, i) => (
               <div key={i} className={msg.from === 'user' ? 'text-right' : 'text-left'}>
                 <div
                   className={`inline-block px-3 py-2 rounded-lg text-sm max-w-[85%] ${
-                    msg.from === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'
+                    msg.from === 'user' ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-800'
                   }`}
                 >
                   {msg.text}
@@ -22,7 +22,7 @@ function ChatWidget({ chatOpen, setChatOpen, chatMessages, chatInput, setChatInp
                 {msg.sourceArticle && (
                   <button
                     onClick={() => onViewArticle(msg.sourceArticle)}
-                    className="block text-xs text-blue-600 mt-1 hover:underline"
+                    className="block text-xs text-blue-700 mt-1 hover:underline"
                   >
                     View full article →
                   </button>
@@ -30,7 +30,7 @@ function ChatWidget({ chatOpen, setChatOpen, chatMessages, chatInput, setChatInp
               </div>
             ))}
           </div>
-          <form onSubmit={handleChatSend} className="border-t border-slate-200 p-2 flex gap-2">
+          <form onSubmit={handleChatSend} className="border-t border-slate-200 p-2 flex gap-2 bg-white">
             <input
               type="text"
               placeholder="Ask a question..."
@@ -38,17 +38,86 @@ function ChatWidget({ chatOpen, setChatOpen, chatMessages, chatInput, setChatInp
               onChange={(e) => setChatInput(e.target.value)}
               className="flex-1 border border-slate-300 rounded px-2 py-1 text-sm text-slate-800"
             />
-            <button type="submit" className="bg-blue-600 text-white rounded px-3 py-1 text-sm">Send</button>
+            <button type="submit" className="bg-slate-800 text-white rounded px-3 py-1 text-sm">Send</button>
           </form>
         </div>
       )}
       <button
         onClick={() => setChatOpen(!chatOpen)}
-        className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 shadow-lg flex items-center justify-center text-2xl"
+        className="bg-slate-800 hover:bg-slate-900 text-white rounded-full w-14 h-14 shadow-lg flex items-center justify-center text-2xl"
       >
         💬
       </button>
     </div>
+  )
+}
+
+function TopBar({ currentUser, setView, setCurrentUser, searchTerm, setSearchTerm }) {
+  return (
+    <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-6">
+        <button onClick={() => setView('home')} className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-700 rounded flex items-center justify-center text-white font-bold text-sm">P</div>
+          <span className="font-semibold text-slate-800">PulseDesk-KB</span>
+        </button>
+
+        <div className="flex-1 max-w-lg">
+          <input
+            type="text"
+            placeholder="Search articles, SOPs, troubleshooting guides..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 text-sm">
+          {currentUser ? (
+            <>
+              <span className="text-slate-500">{currentUser.name} · <span className="uppercase text-xs text-blue-700 font-medium">{currentUser.role}</span></span>
+              <button onClick={() => setView('newArticle')} className="bg-blue-700 hover:bg-blue-800 text-white rounded-md px-3 py-1.5 text-sm font-medium">
+                + New Article
+              </button>
+              <button onClick={() => setCurrentUser(null)} className="text-slate-500 hover:text-slate-800">Log out</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setView('login')} className="text-slate-600 hover:text-slate-900">Login</button>
+              <button onClick={() => setView('register')} className="bg-blue-700 hover:bg-blue-800 text-white rounded-md px-3 py-1.5 text-sm font-medium">
+                Register
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+  )
+}
+
+function Sidebar({ categories, activeCategory, setActiveCategory }) {
+  return (
+    <aside className="w-56 shrink-0 border-r border-slate-200 bg-white min-h-[calc(100vh-57px)] py-6 px-3 hidden md:block">
+      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-3 mb-2">Categories</p>
+      <button
+        onClick={() => setActiveCategory(null)}
+        className={`w-full text-left px-3 py-2 rounded-md text-sm mb-1 ${
+          activeCategory === null ? 'bg-blue-50 text-blue-800 font-medium' : 'text-slate-600 hover:bg-slate-50'
+        }`}
+      >
+        All Articles
+      </button>
+      {categories.map((cat) => (
+        <button
+          key={cat.id}
+          onClick={() => setActiveCategory(cat.id)}
+          className={`w-full text-left px-3 py-2 rounded-md text-sm mb-1 ${
+            activeCategory === cat.id ? 'bg-blue-50 text-blue-800 font-medium' : 'text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          {cat.name}
+        </button>
+      ))}
+    </aside>
   )
 }
 
@@ -57,6 +126,7 @@ function App() {
   const [articles, setArticles] = useState([])
   const [selectedArticle, setSelectedArticle] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [activeCategory, setActiveCategory] = useState(null)
   const [view, setView] = useState('home')
   const [currentUser, setCurrentUser] = useState(null)
 
@@ -86,9 +156,9 @@ function App() {
     loadData()
   }, [])
 
-  const filteredArticles = articles.filter((a) =>
-    a.title.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredArticles = articles
+    .filter((a) => a.title.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter((a) => (activeCategory ? a.category_id === activeCategory : true))
 
   const handleLogin = (e) => {
     e.preventDefault()
@@ -155,7 +225,6 @@ function App() {
   const handleChatSend = (e) => {
     e.preventDefault()
     if (!chatInput.trim()) return
-
     const question = chatInput.trim()
     setChatMessages((prev) => [...prev, { from: 'user', text: question }])
     setChatInput('')
@@ -169,16 +238,12 @@ function App() {
       if (match) {
         setChatMessages((prev) => [
           ...prev,
-          {
-            from: 'bot',
-            text: `Here's what I found in "${match.title}": ${match.content}`,
-            sourceArticle: match,
-          },
+          { from: 'bot', text: `Here's what I found in "${match.title}": ${match.content}`, sourceArticle: match },
         ])
       } else {
         setChatMessages((prev) => [
           ...prev,
-          { from: 'bot', text: "I couldn't find a relevant article for that. Try rephrasing, or browse the Knowledge Base categories above." },
+          { from: 'bot', text: "I couldn't find a relevant article for that. Try rephrasing, or browse a category on the left." },
         ])
       }
     }, 400)
@@ -189,46 +254,22 @@ function App() {
     setChatOpen(false)
   }
 
-  const NavBar = () => (
-    <div className="flex justify-end gap-4 px-6 py-3 bg-blue-700 text-sm text-blue-100">
-      {currentUser ? (
-        <>
-          <span>Hi, {currentUser.name} ({currentUser.role})</span>
-          <button onClick={() => setView('newArticle')} className="hover:text-white">+ New Article</button>
-          <button onClick={() => setCurrentUser(null)} className="hover:text-white">Log out</button>
-        </>
-      ) : (
-        <>
-          <button onClick={() => setView('login')} className="hover:text-white">Login</button>
-          <button onClick={() => setView('register')} className="hover:text-white">Register</button>
-        </>
-      )}
-    </div>
-  )
-
-  const chatProps = {
-    chatOpen,
-    setChatOpen,
-    chatMessages,
-    chatInput,
-    setChatInput,
-    handleChatSend,
-    onViewArticle: handleViewArticleFromChat,
-  }
+  const chatProps = { chatOpen, setChatOpen, chatMessages, chatInput, setChatInput, handleChatSend, onViewArticle: handleViewArticleFromChat }
+  const topBarProps = { currentUser, setView, setCurrentUser, searchTerm, setSearchTerm }
 
   if (view === 'login') {
     return (
       <div className="min-h-screen bg-slate-50">
-        <NavBar />
-        <div className="max-w-sm mx-auto mt-16 bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4 text-slate-800">Log In</h2>
+        <TopBar {...topBarProps} />
+        <div className="max-w-sm mx-auto mt-16 bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+          <h2 className="text-lg font-semibold mb-4 text-slate-800">Log In</h2>
           {authError && <p className="text-red-600 text-sm mb-3">{authError}</p>}
           <form onSubmit={handleLogin} className="space-y-3">
-            <input type="email" placeholder="Email" className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800" value={loginForm.email} onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })} />
-            <input type="password" placeholder="Password" className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800" value={loginForm.password} onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })} />
-            <button type="submit" className="w-full bg-blue-600 text-white rounded py-2">Log In</button>
+            <input type="email" placeholder="Email" className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800" value={loginForm.email} onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })} />
+            <input type="password" placeholder="Password" className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800" value={loginForm.password} onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })} />
+            <button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-md py-2 text-sm font-medium">Log In</button>
           </form>
-          <button onClick={() => setView('home')} className="mt-4 text-sm text-blue-600">← Back</button>
+          <button onClick={() => setView('home')} className="mt-4 text-sm text-blue-700">← Back</button>
         </div>
         <ChatWidget {...chatProps} />
       </div>
@@ -238,18 +279,18 @@ function App() {
   if (view === 'register') {
     return (
       <div className="min-h-screen bg-slate-50">
-        <NavBar />
-        <div className="max-w-sm mx-auto mt-16 bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4 text-slate-800">Register</h2>
+        <TopBar {...topBarProps} />
+        <div className="max-w-sm mx-auto mt-16 bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+          <h2 className="text-lg font-semibold mb-4 text-slate-800">Register</h2>
           {authError && <p className="text-red-600 text-sm mb-3">{authError}</p>}
           <form onSubmit={handleRegister} className="space-y-3">
-            <input type="text" placeholder="Full Name" className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800" value={registerForm.name} onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })} />
-            <input type="email" placeholder="Email" className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800" value={registerForm.email} onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })} />
-            <input type="password" placeholder="Password" className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800" value={registerForm.password} onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })} />
-            <input type="text" placeholder="Department" className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800" value={registerForm.department} onChange={(e) => setRegisterForm({ ...registerForm, department: e.target.value })} />
-            <button type="submit" className="w-full bg-blue-600 text-white rounded py-2">Register</button>
+            <input type="text" placeholder="Full Name" className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800" value={registerForm.name} onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })} />
+            <input type="email" placeholder="Email" className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800" value={registerForm.email} onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })} />
+            <input type="password" placeholder="Password" className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800" value={registerForm.password} onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })} />
+            <input type="text" placeholder="Department" className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800" value={registerForm.department} onChange={(e) => setRegisterForm({ ...registerForm, department: e.target.value })} />
+            <button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-md py-2 text-sm font-medium">Register</button>
           </form>
-          <button onClick={() => setView('home')} className="mt-4 text-sm text-blue-600">← Back</button>
+          <button onClick={() => setView('home')} className="mt-4 text-sm text-blue-700">← Back</button>
         </div>
         <ChatWidget {...chatProps} />
       </div>
@@ -259,27 +300,27 @@ function App() {
   if (view === 'newArticle') {
     return (
       <div className="min-h-screen bg-slate-50">
-        <NavBar />
-        <div className="max-w-xl mx-auto mt-10 bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4 text-slate-800">New Article</h2>
+        <TopBar {...topBarProps} />
+        <div className="max-w-xl mx-auto mt-10 bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+          <h2 className="text-lg font-semibold mb-4 text-slate-800">New Article</h2>
           {articleError && <p className="text-red-600 text-sm mb-3">{articleError}</p>}
           <form onSubmit={handleCreateArticle} className="space-y-3">
-            <input type="text" placeholder="Title" className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800" value={articleForm.title} onChange={(e) => setArticleForm({ ...articleForm, title: e.target.value })} />
-            <input type="text" placeholder="Slug (e.g. how-to-x)" className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800" value={articleForm.slug} onChange={(e) => setArticleForm({ ...articleForm, slug: e.target.value })} />
-            <textarea placeholder="Content" rows="5" className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800" value={articleForm.content} onChange={(e) => setArticleForm({ ...articleForm, content: e.target.value })} />
-            <select className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800" value={articleForm.category_id} onChange={(e) => setArticleForm({ ...articleForm, category_id: e.target.value })}>
+            <input type="text" placeholder="Title" className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800" value={articleForm.title} onChange={(e) => setArticleForm({ ...articleForm, title: e.target.value })} />
+            <input type="text" placeholder="Slug (e.g. how-to-x)" className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800" value={articleForm.slug} onChange={(e) => setArticleForm({ ...articleForm, slug: e.target.value })} />
+            <textarea placeholder="Content" rows="5" className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800" value={articleForm.content} onChange={(e) => setArticleForm({ ...articleForm, content: e.target.value })} />
+            <select className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800" value={articleForm.category_id} onChange={(e) => setArticleForm({ ...articleForm, category_id: e.target.value })}>
               <option value="">No category</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
-            <select className="w-full border border-slate-300 rounded px-3 py-2 text-slate-800" value={articleForm.status} onChange={(e) => setArticleForm({ ...articleForm, status: e.target.value })}>
+            <select className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800" value={articleForm.status} onChange={(e) => setArticleForm({ ...articleForm, status: e.target.value })}>
               <option value="draft">Draft</option>
               <option value="published">Published</option>
             </select>
-            <button type="submit" className="w-full bg-blue-600 text-white rounded py-2">Create Article</button>
+            <button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-md py-2 text-sm font-medium">Create Article</button>
           </form>
-          <button onClick={() => setView('home')} className="mt-4 text-sm text-blue-600">← Back</button>
+          <button onClick={() => setView('home')} className="mt-4 text-sm text-blue-700">← Back</button>
         </div>
         <ChatWidget {...chatProps} />
       </div>
@@ -289,16 +330,18 @@ function App() {
   if (selectedArticle) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <NavBar />
-        <header className="bg-blue-600 text-white py-6 px-6">
-          <button onClick={() => setSelectedArticle(null)} className="text-blue-100 hover:text-white mb-4">← Back to Knowledge Base</button>
-          <h1 className="text-2xl font-bold">{selectedArticle.title}</h1>
-        </header>
-        <main className="max-w-3xl mx-auto px-6 py-10">
-          <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-slate-700 leading-relaxed">{selectedArticle.content}</p>
-          </div>
-        </main>
+        <TopBar {...topBarProps} />
+        <div className="flex">
+          <Sidebar categories={categories} activeCategory={activeCategory} setActiveCategory={(id) => { setActiveCategory(id); setSelectedArticle(null) }} />
+          <main className="flex-1 max-w-3xl mx-auto px-6 py-10">
+            <button onClick={() => setSelectedArticle(null)} className="text-blue-700 hover:underline text-sm mb-4 inline-block">← Back to Knowledge Base</button>
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+              <p className="text-xs uppercase tracking-wide text-slate-400 mb-1">{selectedArticle.status}</p>
+              <h1 className="text-2xl font-bold text-slate-900 mb-4">{selectedArticle.title}</h1>
+              <p className="text-slate-700 leading-relaxed">{selectedArticle.content}</p>
+            </div>
+          </main>
+        </div>
         <ChatWidget {...chatProps} />
       </div>
     )
@@ -306,38 +349,35 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <NavBar />
-      <header className="bg-blue-600 text-white py-10 px-6 text-center">
-        <h1 className="text-3xl font-bold mb-2">PulseDesk-KB</h1>
-        <p className="text-blue-100 mb-6">Healthcare Knowledge Base & Support Assistant</p>
-        <input type="text" placeholder="Search articles..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full max-w-md mx-auto block rounded-lg px-4 py-2 text-slate-800 border border-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
-      </header>
+      <TopBar {...topBarProps} />
+      <div className="flex">
+        <Sidebar categories={categories} activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+        <main className="flex-1 max-w-4xl mx-auto px-6 py-8">
+          <h1 className="text-xl font-semibold text-slate-800 mb-1">
+            {activeCategory ? categories.find((c) => c.id === activeCategory)?.name : 'All Articles'}
+          </h1>
+          <p className="text-sm text-slate-500 mb-6">{filteredArticles.length} article{filteredArticles.length !== 1 ? 's' : ''}</p>
 
-      <main className="max-w-5xl mx-auto px-6 py-10">
-        <section className="mb-10">
-          <h2 className="text-xl font-semibold mb-4 text-slate-800">Categories</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {categories.map((cat) => (
-              <div key={cat.id} className="bg-white rounded-lg shadow p-4 text-center">
-                <p className="font-medium text-slate-700">{cat.name}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-xl font-semibold mb-4 text-slate-800">Articles</h2>
-          <div className="space-y-4">
-            {filteredArticles.length === 0 && <p className="text-slate-500">No articles match your search.</p>}
+          <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 shadow-sm">
+            {filteredArticles.length === 0 && (
+              <p className="text-slate-500 text-sm p-6">No articles match your search.</p>
+            )}
             {filteredArticles.map((article) => (
-              <div key={article.id} onClick={() => setSelectedArticle(article)} className="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md transition">
-                <h3 className="font-semibold text-slate-800">{article.title}</h3>
-                <p className="text-slate-500 text-sm mt-1">{article.status}</p>
+              <div
+                key={article.id}
+                onClick={() => setSelectedArticle(article)}
+                className="px-5 py-4 cursor-pointer hover:bg-slate-50 transition flex items-center justify-between"
+              >
+                <div>
+                  <h3 className="font-medium text-slate-800 text-sm">{article.title}</h3>
+                  <p className="text-slate-400 text-xs mt-0.5 uppercase tracking-wide">{article.status}</p>
+                </div>
+                <span className="text-slate-300 text-sm">→</span>
               </div>
             ))}
           </div>
-        </section>
-      </main>
+        </main>
+      </div>
       <ChatWidget {...chatProps} />
     </div>
   )
