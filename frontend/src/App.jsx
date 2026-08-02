@@ -1,11 +1,63 @@
 import { useEffect, useState } from 'react'
 
+function ChatWidget({ chatOpen, setChatOpen, chatMessages, chatInput, setChatInput, handleChatSend, onViewArticle }) {
+  return (
+    <div className="fixed bottom-6 right-6 z-50">
+      {chatOpen && (
+        <div className="mb-3 w-80 h-96 bg-white rounded-lg shadow-xl flex flex-col overflow-hidden border border-slate-200">
+          <div className="bg-blue-600 text-white px-4 py-3 flex justify-between items-center">
+            <span className="font-semibold">PulseDesk Assistant</span>
+            <button onClick={() => setChatOpen(false)} className="text-blue-100 hover:text-white">✕</button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            {chatMessages.map((msg, i) => (
+              <div key={i} className={msg.from === 'user' ? 'text-right' : 'text-left'}>
+                <div
+                  className={`inline-block px-3 py-2 rounded-lg text-sm max-w-[85%] ${
+                    msg.from === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'
+                  }`}
+                >
+                  {msg.text}
+                </div>
+                {msg.sourceArticle && (
+                  <button
+                    onClick={() => onViewArticle(msg.sourceArticle)}
+                    className="block text-xs text-blue-600 mt-1 hover:underline"
+                  >
+                    View full article →
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <form onSubmit={handleChatSend} className="border-t border-slate-200 p-2 flex gap-2">
+            <input
+              type="text"
+              placeholder="Ask a question..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              className="flex-1 border border-slate-300 rounded px-2 py-1 text-sm text-slate-800"
+            />
+            <button type="submit" className="bg-blue-600 text-white rounded px-3 py-1 text-sm">Send</button>
+          </form>
+        </div>
+      )}
+      <button
+        onClick={() => setChatOpen(!chatOpen)}
+        className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 shadow-lg flex items-center justify-center text-2xl"
+      >
+        💬
+      </button>
+    </div>
+  )
+}
+
 function App() {
   const [categories, setCategories] = useState([])
   const [articles, setArticles] = useState([])
   const [selectedArticle, setSelectedArticle] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [view, setView] = useState('home') // 'home' | 'login' | 'register' | 'newArticle'
+  const [view, setView] = useState('home')
   const [currentUser, setCurrentUser] = useState(null)
 
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
@@ -13,6 +65,12 @@ function App() {
   const [articleForm, setArticleForm] = useState({ title: '', slug: '', content: '', category_id: '', status: 'draft' })
   const [authError, setAuthError] = useState('')
   const [articleError, setArticleError] = useState('')
+
+  const [chatOpen, setChatOpen] = useState(false)
+  const [chatInput, setChatInput] = useState('')
+  const [chatMessages, setChatMessages] = useState([
+    { from: 'bot', text: 'Hi! Ask me a question about the knowledge base.' },
+  ])
 
   const loadData = () => {
     fetch('http://127.0.0.1:8000/categories')
@@ -94,6 +152,43 @@ function App() {
       .catch((err) => setArticleError(err.message))
   }
 
+  const handleChatSend = (e) => {
+    e.preventDefault()
+    if (!chatInput.trim()) return
+
+    const question = chatInput.trim()
+    setChatMessages((prev) => [...prev, { from: 'user', text: question }])
+    setChatInput('')
+
+    const match = articles.find((a) =>
+      a.title.toLowerCase().includes(question.toLowerCase()) ||
+      question.toLowerCase().split(' ').some((word) => word.length > 3 && a.title.toLowerCase().includes(word))
+    )
+
+    setTimeout(() => {
+      if (match) {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            from: 'bot',
+            text: `Here's what I found in "${match.title}": ${match.content}`,
+            sourceArticle: match,
+          },
+        ])
+      } else {
+        setChatMessages((prev) => [
+          ...prev,
+          { from: 'bot', text: "I couldn't find a relevant article for that. Try rephrasing, or browse the Knowledge Base categories above." },
+        ])
+      }
+    }, 400)
+  }
+
+  const handleViewArticleFromChat = (article) => {
+    setSelectedArticle(article)
+    setChatOpen(false)
+  }
+
   const NavBar = () => (
     <div className="flex justify-end gap-4 px-6 py-3 bg-blue-700 text-sm text-blue-100">
       {currentUser ? (
@@ -111,6 +206,16 @@ function App() {
     </div>
   )
 
+  const chatProps = {
+    chatOpen,
+    setChatOpen,
+    chatMessages,
+    chatInput,
+    setChatInput,
+    handleChatSend,
+    onViewArticle: handleViewArticleFromChat,
+  }
+
   if (view === 'login') {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -125,6 +230,7 @@ function App() {
           </form>
           <button onClick={() => setView('home')} className="mt-4 text-sm text-blue-600">← Back</button>
         </div>
+        <ChatWidget {...chatProps} />
       </div>
     )
   }
@@ -145,6 +251,7 @@ function App() {
           </form>
           <button onClick={() => setView('home')} className="mt-4 text-sm text-blue-600">← Back</button>
         </div>
+        <ChatWidget {...chatProps} />
       </div>
     )
   }
@@ -174,6 +281,7 @@ function App() {
           </form>
           <button onClick={() => setView('home')} className="mt-4 text-sm text-blue-600">← Back</button>
         </div>
+        <ChatWidget {...chatProps} />
       </div>
     )
   }
@@ -191,6 +299,7 @@ function App() {
             <p className="text-slate-700 leading-relaxed">{selectedArticle.content}</p>
           </div>
         </main>
+        <ChatWidget {...chatProps} />
       </div>
     )
   }
@@ -229,6 +338,7 @@ function App() {
           </div>
         </section>
       </main>
+      <ChatWidget {...chatProps} />
     </div>
   )
 }
