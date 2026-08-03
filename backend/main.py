@@ -77,9 +77,28 @@ def get_articles(db: Session = Depends(get_db)):
     return db.query(Article).filter(Article.status == "published").all()
 
 
-@app.get("/articles/mine", response_model=list[ArticleResponse])
-def get_my_articles(author_id: int, db: Session = Depends(get_db)):
-    return db.query(Article).filter(Article.author_id == author_id).all()
+@app.get("/articles/drafts", response_model=list[ArticleResponse])
+def get_draft_articles(admin_id: int, db: Session = Depends(get_db)):
+    admin = db.query(User).filter(User.id == admin_id).first()
+    if not admin or admin.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can view pending drafts")
+    return db.query(Article).filter(Article.status == "draft").all()
+
+
+@app.post("/articles/{article_id}/publish", response_model=ArticleResponse)
+def publish_article(article_id: int, admin_id: int, db: Session = Depends(get_db)):
+    admin = db.query(User).filter(User.id == admin_id).first()
+    if not admin or admin.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can publish articles")
+
+    article = db.query(Article).filter(Article.id == article_id).first()
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    article.status = "published"
+    db.commit()
+    db.refresh(article)
+    return article
 
 
 @app.post("/users", response_model=UserResponse)

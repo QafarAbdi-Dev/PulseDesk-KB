@@ -1,5 +1,16 @@
 import { useEffect, useState } from 'react'
 
+const CATEGORY_ICONS = {
+  'getting-started': '🚀',
+  'patient-management': '🏥',
+  'clinical-modules': '🩺',
+  'billing-finance': '💳',
+  'system-administration': '⚙️',
+  'compliance-security': '🔒',
+  'troubleshooting': '🛠️',
+  'release-notes': '📋',
+}
+
 function ChatWidget({ chatOpen, setChatOpen, chatMessages, chatInput, setChatInput, handleChatSend, onViewArticle }) {
   return (
     <div className="fixed bottom-6 right-6 z-50">
@@ -80,6 +91,11 @@ function TopBar({ currentUser, setView, setCurrentUser, searchTerm, setSearchTer
                   + New Article
                 </button>
               )}
+              {currentUser.role === 'admin' && (
+                <button onClick={() => setView('drafts')} className="text-slate-600 hover:text-slate-900">
+                  Review Drafts
+                </button>
+              )}
               <button onClick={() => setCurrentUser(null)} className="text-slate-500 hover:text-slate-800">Log out</button>
             </>
           ) : (
@@ -96,27 +112,31 @@ function TopBar({ currentUser, setView, setCurrentUser, searchTerm, setSearchTer
   )
 }
 
-function Sidebar({ categories, activeCategory, setActiveCategory }) {
+function Sidebar({ categories, articles, activeCategory, setActiveCategory }) {
+  const countFor = (catId) => articles.filter((a) => a.category_id === catId).length
+
   return (
-    <aside className="w-56 shrink-0 border-r border-slate-200 bg-white min-h-[calc(100vh-57px)] py-6 px-3 hidden md:block">
+    <aside className="w-64 shrink-0 border-r border-slate-200 bg-white min-h-[calc(100vh-57px)] py-6 px-3 hidden md:block">
       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-3 mb-2">Categories</p>
       <button
         onClick={() => setActiveCategory(null)}
-        className={`w-full text-left px-3 py-2 rounded-md text-sm mb-1 ${
+        className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm mb-1 ${
           activeCategory === null ? 'bg-blue-50 text-blue-800 font-medium' : 'text-slate-600 hover:bg-slate-50'
         }`}
       >
-        All Articles
+        <span>📚 All Articles</span>
+        <span className="text-xs text-slate-400">{articles.length}</span>
       </button>
       {categories.map((cat) => (
         <button
           key={cat.id}
           onClick={() => setActiveCategory(cat.id)}
-          className={`w-full text-left px-3 py-2 rounded-md text-sm mb-1 ${
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm mb-1 ${
             activeCategory === cat.id ? 'bg-blue-50 text-blue-800 font-medium' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          {cat.name}
+          <span>{CATEGORY_ICONS[cat.slug] || '📁'} {cat.name}</span>
+          <span className="text-xs text-slate-400">{countFor(cat.id)}</span>
         </button>
       ))}
     </aside>
@@ -126,6 +146,7 @@ function Sidebar({ categories, activeCategory, setActiveCategory }) {
 function App() {
   const [categories, setCategories] = useState([])
   const [articles, setArticles] = useState([])
+  const [draftArticles, setDraftArticles] = useState([])
   const [selectedArticle, setSelectedArticle] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [activeCategory, setActiveCategory] = useState(null)
@@ -154,6 +175,12 @@ function App() {
       .then((data) => setArticles(data))
   }
 
+  const loadDrafts = (adminId) => {
+    fetch(`http://127.0.0.1:8000/articles/drafts?admin_id=${adminId}`)
+      .then((res) => res.json())
+      .then((data) => setDraftArticles(data))
+  }
+
   useEffect(() => {
     loadData()
   }, [])
@@ -161,6 +188,8 @@ function App() {
   const filteredArticles = articles
     .filter((a) => a.title.toLowerCase().includes(searchTerm.toLowerCase()))
     .filter((a) => (activeCategory ? a.category_id === activeCategory : true))
+
+  const featuredArticles = articles.slice(0, 3)
 
   const handleLogin = (e) => {
     e.preventDefault()
@@ -203,11 +232,15 @@ function App() {
   const handleCreateArticle = (e) => {
     e.preventDefault()
     setArticleError('')
+
+    const isEditor = currentUser && currentUser.role === 'editor'
+
     fetch('http://127.0.0.1:8000/articles', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...articleForm,
+        status: isEditor ? 'draft' : articleForm.status,
         category_id: articleForm.category_id ? parseInt(articleForm.category_id) : null,
         author_id: currentUser ? currentUser.id : null,
       }),
@@ -225,6 +258,17 @@ function App() {
         setView('home')
       })
       .catch((err) => setArticleError(err.message))
+  }
+
+  const handlePublish = (articleId) => {
+    fetch(`http://127.0.0.1:8000/articles/${articleId}/publish?admin_id=${currentUser.id}`, {
+      method: 'POST',
+    })
+      .then((res) => res.json())
+      .then(() => {
+        loadDrafts(currentUser.id)
+        loadData()
+      })
   }
 
   const handleChatSend = (e) => {
@@ -261,6 +305,7 @@ function App() {
 
   const chatProps = { chatOpen, setChatOpen, chatMessages, chatInput, setChatInput, handleChatSend, onViewArticle: handleViewArticleFromChat }
   const topBarProps = { currentUser, setView, setCurrentUser, searchTerm, setSearchTerm }
+  const sidebarProps = { categories, articles, activeCategory, setActiveCategory }
 
   if (view === 'login') {
     return (
@@ -303,14 +348,15 @@ function App() {
   }
 
   if (view === 'newArticle') {
+    const isEditor = currentUser && currentUser.role === 'editor'
     return (
       <div className="min-h-screen bg-slate-50">
         <TopBar {...topBarProps} />
         <div className="max-w-xl mx-auto mt-10 bg-white rounded-lg border border-slate-200 shadow-sm p-6">
           <h2 className="text-lg font-semibold mb-4 text-slate-800">New Article</h2>
-          {currentUser && currentUser.role === 'editor' && (
+          {isEditor && (
             <p className="text-amber-600 text-xs mb-3 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-              As an Editor, your articles will be saved as drafts pending Admin review.
+              As an Editor, your articles are saved as drafts and require Admin approval before publishing.
             </p>
           )}
           {articleError && <p className="text-red-600 text-sm mb-3">{articleError}</p>}
@@ -324,13 +370,56 @@ function App() {
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
-            <select className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800" value={articleForm.status} onChange={(e) => setArticleForm({ ...articleForm, status: e.target.value })}>
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-            </select>
-            <button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-md py-2 text-sm font-medium">Create Article</button>
+            {!isEditor && (
+              <select className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800" value={articleForm.status} onChange={(e) => setArticleForm({ ...articleForm, status: e.target.value })}>
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+              </select>
+            )}
+            <button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-md py-2 text-sm font-medium">
+              {isEditor ? 'Submit as Draft' : 'Create Article'}
+            </button>
           </form>
           <button onClick={() => setView('home')} className="mt-4 text-sm text-blue-700">← Back</button>
+        </div>
+        <ChatWidget {...chatProps} />
+      </div>
+    )
+  }
+
+  if (view === 'drafts') {
+    if (!currentUser || currentUser.role !== 'admin') {
+      return (
+        <div className="min-h-screen bg-slate-50">
+          <TopBar {...topBarProps} />
+          <p className="text-center text-slate-500 mt-16">Access denied.</p>
+        </div>
+      )
+    }
+    if (draftArticles.length === 0 && draftArticles !== null) {
+      loadDrafts(currentUser.id)
+    }
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <TopBar {...topBarProps} />
+        <div className="max-w-3xl mx-auto mt-10 px-6">
+          <h2 className="text-lg font-semibold mb-4 text-slate-800">Pending Drafts</h2>
+          {draftArticles.length === 0 && <p className="text-slate-500 text-sm">No drafts awaiting review.</p>}
+          <div className="space-y-3">
+            {draftArticles.map((article) => (
+              <div key={article.id} className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
+                <h3 className="font-medium text-slate-800">{article.title}</h3>
+                <p className="text-slate-500 text-sm mt-1 mb-3">{article.content.slice(0, 120)}...</p>
+                <button
+                  onClick={() => handlePublish(article.id)}
+                  className="bg-blue-700 hover:bg-blue-800 text-white rounded-md px-3 py-1.5 text-sm font-medium"
+                >
+                  Publish
+                </button>
+              </div>
+            ))}
+          </div>
+          <button onClick={() => setView('home')} className="mt-6 text-sm text-blue-700">← Back</button>
         </div>
         <ChatWidget {...chatProps} />
       </div>
@@ -342,7 +431,7 @@ function App() {
       <div className="min-h-screen bg-slate-50">
         <TopBar {...topBarProps} />
         <div className="flex">
-          <Sidebar categories={categories} activeCategory={activeCategory} setActiveCategory={(id) => { setActiveCategory(id); setSelectedArticle(null) }} />
+          <Sidebar {...sidebarProps} setActiveCategory={(id) => { setActiveCategory(id); setSelectedArticle(null) }} />
           <main className="flex-1 max-w-3xl mx-auto px-6 py-10">
             <button onClick={() => setSelectedArticle(null)} className="text-blue-700 hover:underline text-sm mb-4 inline-block">← Back to Knowledge Base</button>
             <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
@@ -360,9 +449,59 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-50">
       <TopBar {...topBarProps} />
+
+      {!searchTerm && !activeCategory && (
+        <div className="bg-gradient-to-r from-blue-700 to-blue-600 text-white">
+          <div className="max-w-5xl mx-auto px-6 py-10">
+            <h1 className="text-2xl font-bold mb-1">Welcome to PulseDesk Knowledge Base</h1>
+            <p className="text-blue-100 text-sm mb-6">Search documentation, SOPs, and troubleshooting guides for HMIS and related healthcare products.</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white/10 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold">{articles.length}</p>
+                <p className="text-xs text-blue-100">Articles</p>
+              </div>
+              <div className="bg-white/10 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold">{categories.length}</p>
+                <p className="text-xs text-blue-100">Categories</p>
+              </div>
+              <div className="bg-white/10 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold">98%</p>
+                <p className="text-xs text-blue-100">Satisfaction</p>
+              </div>
+              <div className="bg-white/10 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold">24/7</p>
+                <p className="text-xs text-blue-100">Assistant Access</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex">
-        <Sidebar categories={categories} activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+        <Sidebar {...sidebarProps} />
         <main className="flex-1 max-w-4xl mx-auto px-6 py-8">
+          {!searchTerm && !activeCategory && featuredArticles.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Featured Articles</h2>
+              <div className="grid md:grid-cols-3 gap-3">
+                {featuredArticles.map((article) => {
+                  const cat = categories.find((c) => c.id === article.category_id)
+                  return (
+                    <div
+                      key={article.id}
+                      onClick={() => setSelectedArticle(article)}
+                      className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 cursor-pointer hover:shadow-md hover:border-blue-200 transition"
+                    >
+                      <span className="text-xl">{cat ? CATEGORY_ICONS[cat.slug] : '📄'}</span>
+                      <h3 className="font-medium text-slate-800 text-sm mt-2 leading-snug">{article.title}</h3>
+                      <p className="text-slate-400 text-xs mt-2">{cat ? cat.name : 'Uncategorized'}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           <h1 className="text-xl font-semibold text-slate-800 mb-1">
             {activeCategory ? categories.find((c) => c.id === activeCategory)?.name : 'All Articles'}
           </h1>
@@ -372,19 +511,23 @@ function App() {
             {filteredArticles.length === 0 && (
               <p className="text-slate-500 text-sm p-6">No articles match your search.</p>
             )}
-            {filteredArticles.map((article) => (
-              <div
-                key={article.id}
-                onClick={() => setSelectedArticle(article)}
-                className="px-5 py-4 cursor-pointer hover:bg-slate-50 transition flex items-center justify-between"
-              >
-                <div>
-                  <h3 className="font-medium text-slate-800 text-sm">{article.title}</h3>
-                  <p className="text-slate-400 text-xs mt-0.5 uppercase tracking-wide">{article.status}</p>
+            {filteredArticles.map((article) => {
+              const cat = categories.find((c) => c.id === article.category_id)
+              return (
+                <div
+                  key={article.id}
+                  onClick={() => setSelectedArticle(article)}
+                  className="px-5 py-4 cursor-pointer hover:bg-slate-50 transition flex items-center gap-3"
+                >
+                  <span className="text-lg">{cat ? CATEGORY_ICONS[cat.slug] : '📄'}</span>
+                  <div className="flex-1">
+                    <h3 className="font-medium text-slate-800 text-sm">{article.title}</h3>
+                    <p className="text-slate-400 text-xs mt-0.5">{cat ? cat.name : 'Uncategorized'} · {article.status}</p>
+                  </div>
+                  <span className="text-slate-300 text-sm">→</span>
                 </div>
-                <span className="text-slate-300 text-sm">→</span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </main>
       </div>
