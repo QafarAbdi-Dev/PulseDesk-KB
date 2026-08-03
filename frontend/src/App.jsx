@@ -75,9 +75,11 @@ function TopBar({ currentUser, setView, setCurrentUser, searchTerm, setSearchTer
           {currentUser ? (
             <>
               <span className="text-slate-500">{currentUser.name} · <span className="uppercase text-xs text-blue-700 font-medium">{currentUser.role}</span></span>
-              <button onClick={() => setView('newArticle')} className="bg-blue-700 hover:bg-blue-800 text-white rounded-md px-3 py-1.5 text-sm font-medium">
-                + New Article
-              </button>
+              {(currentUser.role === 'editor' || currentUser.role === 'admin') && (
+                <button onClick={() => setView('newArticle')} className="bg-blue-700 hover:bg-blue-800 text-white rounded-md px-3 py-1.5 text-sm font-medium">
+                  + New Article
+                </button>
+              )}
               <button onClick={() => setCurrentUser(null)} className="text-slate-500 hover:text-slate-800">Log out</button>
             </>
           ) : (
@@ -211,7 +213,10 @@ function App() {
       }),
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error('Could not create article')
+        if (!res.ok) {
+          const err = await res.json()
+          throw new Error(err.detail || 'Could not create article')
+        }
         return res.json()
       })
       .then(() => {
@@ -303,6 +308,11 @@ function App() {
         <TopBar {...topBarProps} />
         <div className="max-w-xl mx-auto mt-10 bg-white rounded-lg border border-slate-200 shadow-sm p-6">
           <h2 className="text-lg font-semibold mb-4 text-slate-800">New Article</h2>
+          {currentUser && currentUser.role === 'editor' && (
+            <p className="text-amber-600 text-xs mb-3 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+              As an Editor, your articles will be saved as drafts pending Admin review.
+            </p>
+          )}
           {articleError && <p className="text-red-600 text-sm mb-3">{articleError}</p>}
           <form onSubmit={handleCreateArticle} className="space-y-3">
             <input type="text" placeholder="Title" className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-800" value={articleForm.title} onChange={(e) => setArticleForm({ ...articleForm, title: e.target.value })} />

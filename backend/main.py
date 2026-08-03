@@ -44,13 +44,27 @@ def get_categories(db: Session = Depends(get_db)):
 
 @app.post("/articles", response_model=ArticleResponse)
 def create_article(article: ArticleCreate, db: Session = Depends(get_db)):
+    if not article.author_id:
+        raise HTTPException(status_code=403, detail="You must be logged in to create articles")
+
+    author = db.query(User).filter(User.id == article.author_id).first()
+    if not author:
+        raise HTTPException(status_code=403, detail="Invalid author")
+
+    if author.role not in ("editor", "admin"):
+        raise HTTPException(status_code=403, detail="Only editors and admins can create articles")
+
+    final_status = article.status
+    if author.role == "editor" and article.status == "published":
+        final_status = "draft"
+
     new_article = Article(
         title=article.title,
         slug=article.slug,
         content=article.content,
         category_id=article.category_id,
         author_id=article.author_id,
-        status=article.status
+        status=final_status
     )
     db.add(new_article)
     db.commit()
