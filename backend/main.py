@@ -74,7 +74,12 @@ def create_article(article: ArticleCreate, db: Session = Depends(get_db)):
 
 @app.get("/articles", response_model=list[ArticleResponse])
 def get_articles(db: Session = Depends(get_db)):
-    return db.query(Article).all()
+    return db.query(Article).filter(Article.status == "published").all()
+
+
+@app.get("/articles/mine", response_model=list[ArticleResponse])
+def get_my_articles(author_id: int, db: Session = Depends(get_db)):
+    return db.query(Article).filter(Article.author_id == author_id).all()
 
 
 @app.post("/users", response_model=UserResponse)
