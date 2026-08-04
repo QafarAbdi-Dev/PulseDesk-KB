@@ -1,9 +1,24 @@
 from database import SessionLocal
-from models import Category, Article
+from models import Category, Article, User
+from security import hash_password
 
 db = SessionLocal()
 
-ADMIN_ID = 2  # Abdikafar's user id — change if different
+# Create or find the admin user
+admin = db.query(User).filter(User.email == "admin@pulsedesk.test").first()
+if not admin:
+    admin = User(
+        name="Admin",
+        email="admin@pulsedesk.test",
+        password_hash=hash_password("admin12345"),
+        role="admin",
+        department="IT",
+    )
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+
+ADMIN_ID = admin.id
 
 categories_data = [
     {"name": "Getting Started", "slug": "getting-started", "description": "Onboarding and first-login guidance"},
@@ -72,5 +87,6 @@ for title, slug, content, cat_slug in articles_data:
     count += 1
 
 db.commit()
+print(f"Admin account: admin@pulsedesk.test / admin12345")
 print(f"Seeded {len(category_objects)} categories and {count} new articles.")
 db.close()
