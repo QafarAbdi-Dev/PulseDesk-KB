@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+const API_URL = 'https://pulsedesk-kb.onrender.com'
+
 const CATEGORY_ICONS = {
   'getting-started': '🚀',
   'patient-management': '🏥',
@@ -166,17 +168,17 @@ function App() {
   ])
 
   const loadData = () => {
-    fetch('http://127.0.0.1:8000/categories')
+    fetch(`${API_URL}/categories`)
       .then((res) => res.json())
       .then((data) => setCategories(data))
 
-    fetch('http://127.0.0.1:8000/articles')
+    fetch(`${API_URL}/articles`)
       .then((res) => res.json())
       .then((data) => setArticles(data))
   }
 
   const loadDrafts = (adminId) => {
-    fetch(`http://127.0.0.1:8000/articles/drafts?admin_id=${adminId}`)
+    fetch(`${API_URL}/articles/drafts?admin_id=${adminId}`)
       .then((res) => res.json())
       .then((data) => setDraftArticles(data))
   }
@@ -194,7 +196,7 @@ function App() {
   const handleLogin = (e) => {
     e.preventDefault()
     setAuthError('')
-    fetch('http://127.0.0.1:8000/login', {
+    fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(loginForm),
@@ -213,7 +215,7 @@ function App() {
   const handleRegister = (e) => {
     e.preventDefault()
     setAuthError('')
-    fetch('http://127.0.0.1:8000/users', {
+    fetch(`${API_URL}/users`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(registerForm),
@@ -235,7 +237,7 @@ function App() {
 
     const isEditor = currentUser && currentUser.role === 'editor'
 
-    fetch('http://127.0.0.1:8000/articles', {
+    fetch(`${API_URL}/articles`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -261,7 +263,7 @@ function App() {
   }
 
   const handlePublish = (articleId) => {
-    fetch(`http://127.0.0.1:8000/articles/${articleId}/publish?admin_id=${currentUser.id}`, {
+    fetch(`${API_URL}/articles/${articleId}/publish?admin_id=${currentUser.id}`, {
       method: 'POST',
     })
       .then((res) => res.json())
